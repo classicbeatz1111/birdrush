@@ -1,0 +1,13 @@
+
+html, body { height: 100%; margin: 0; background:#87CEEB; font-family: system-ui, Arial, sans-serif; }
+#game { display:flex; flex-direction:column; align-items:center; gap:8px; padding:12px; }
+canvas { background: #0000; image-rendering: pixelated; border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,.2); }
+.ui { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center; }
+button, .btn {
+  border: none; padding: 10px 14px; border-radius: 12px; cursor:pointer; font-weight: 600;
+  box-shadow: 0 6px 16px rgba(0,0,0,.15);
+}
+.primary { background:#4084FF; color:white; }
+.ghost { background:white; color:#333; }
+.badge { padding:6px 10px; background:white; border-radius:999px; font-weight:700; }
+footer { color:#024; font-size: 12px; opacity:.8; }

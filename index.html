@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Bird Rush</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.png" sizes="64x64" type="image/png">
+  <meta name="theme-color" content="#4084FF"/>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Base Layout */
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      font-family: sans-serif;
+      background: #87CEEB;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      scroll-behavior: smooth;
+    }
+
+    /* Full-page Green Scrollbar */
+    body::-webkit-scrollbar {
+      width: 12px;
+    }
+    body::-webkit-scrollbar-track {
+      background: #eaffea;
+    }
+    body::-webkit-scrollbar-thumb {
+      background: #2ecc71;
+      border-radius: 10px;
+    }
+    body::-webkit-scrollbar-thumb:hover {
+      background: #27ae60;
+    }
+
+    /* Loading */
+    #loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      width: 100vw;
+      background: #87CEEB;
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+      animation: pulse 1s infinite alternate;
+      flex-direction: column;
+    }
+    @keyframes pulse {
+      from { opacity: 0.6; }
+      to { opacity: 1; }
+    }
+
+    /* Game Container */
+    #game {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 1rem;
+      width: 100%;
+      max-width: 900px;
+      box-sizing: border-box;
+      padding: 1rem;
+    }
+
+    /* Instructions Section */
+    .instructions {
+      background: #ffffffcc;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      max-width: 700px;
+      margin-top: 1rem;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      text-align: left;
+    }
+    .instructions h2 {
+      margin-top: 0;
+      font-size: 1.2rem;
+      text-align: center;
+    }
+    .instructions ul {
+      padding-left: 1.2rem;
+    }
+
+    /* Responsive Canvas */
+    #canvas {
+      width: 95%;
+      height: auto;
+      max-height: 65vh;
+      display: block;
+      border-radius: 8px;
+      background: #cceeff;
+    }
+
+    /* UI Controls Bar */
+    .ui {
+      display: flex;
+      gap: 0.6rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 1rem 0;         /* adds space above and below UI bar */
+      padding: 0.6rem 1rem;
+      background: #ffffffdd;  /* soft panel look */
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    /* Footer */
+    .footer-bottom {
+      margin: 2rem 0 1rem;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #fff;
+    }
+    .footer-bottom a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .footer-bottom a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading Animation -->
+  <div id="loading">
+    <h2>🐦 Loading Bird Rush...</h2>
+  </div>
+
+  <!-- Game Container -->
+  <div id="game">
+    <div class="game-area">
+      <h1>🐦Bird Rush</h1>
+      <div class="ui">
+        <button id="btnStart" class="primary">Start</button>
+        <button id="btnPause" class="ghost">Pause</button>
+        <span class="badge">Score: <span id="score">0</span></span>
+        <span class="badge">Friends: <span id="friends">1</span></span>
+        <span class="badge">Speed x<span id="speed">1.0</span></span>
+      </div>
+      <canvas id="canvas" width="800" height="480"></canvas>
+    </div>
+
+    <!-- Instructions below -->
+    <div class="instructions">
+      <h2>🎮 How to Play</h2>
+      <ul>
+        <li>🐦 Tap / Click to make your bird fly upward.</li>
+        <li>❤️ Collect <b>hearts</b> to add more friends.</li>
+        <li>⚡ Grab <b>bolts</b> for a speed boost.</li>
+        <li>☁️ Avoid pipes and clouds — crashing ends the game!</li>
+        <li>🏆 The longer you fly, the higher your score.</li>
+        <li>⭐ Tip: Stay calm, the speed boost fades in 5 seconds.</li>
+        <li>🔥 Challenge: Keep your friends alive as long as possible.</li>
+        <li>🎉 Share your score with friends to compete!</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Footer at the very bottom -->
+  <div class="footer-bottom">
+    <p>&copy; 2025 
+      <a href="https://hamdhanmurshid.netlify.app/" target="_blank">
+        <b>Hamdhan Murshid</b>
+      </a> 
+      All rights reserved.
+    </p>
+  </div>
+
+  <script>
+    // Service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js');
+      });
+    }
+
+    // Loading → Game
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('game').style.display = 'flex';
+      }, 2000);
+    });
+
+    // Responsive canvas resize
+    const canvas = document.getElementById('canvas');
+    function resizeCanvas() {
+      const ratio = 800 / 480; // original aspect ratio
+      let w = window.innerWidth * 0.9;
+      let h = w / ratio;
+      if (h > window.innerHeight * 0.65) {
+        h = window.innerHeight * 0.65;
+        w = h * ratio;
+      }
+      canvas.style.width = w + "px";
+      canvas.style.height = h + "px";
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+  </script>
+ <script>
+  // Block context menu (right-click / long-press)
+  document.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+  }, { capture: true });
+
+  // Block drag (e.g., dragging images to save)
+  document.addEventListener('dragstart', (e) => {
+    e.preventDefault();
+  }, { capture: true });
+
+  // Block certain keyboard shortcuts (best-effort only)
+  document.addEventListener('keydown', (e) => {
+    const key = e.key.toLowerCase();
+
+    // Ctrl/Cmd + S/U/P/C (save, view source, print, copy)
+    if ((e.ctrlKey || e.metaKey) && ['s', 'u', 'p', 'c'].includes(key)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
+    // F12 (DevTools), Ctrl+Shift+I/J/C
+    if (
+      key === 'f12' ||
+      (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(key))
+    ) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, { capture: true });
+
+  // Optional: block copy/cut
+  document.addEventListener('copy', (e) => e.preventDefault(), { capture: true });
+  document.addEventListener('cut',  (e) => e.preventDefault(), { capture: true });
+</script>
+<script>
+  document.addEventListener("keydown", function(e) {
+    const key = e.key.toLowerCase();
+
+    // Block Save (Ctrl+S / Cmd+S)
+    if ((e.ctrlKey || e.metaKey) && key === "s") {
+      e.preventDefault();
+      alert("Save is disabled on this page.");
+    }
+
+    // Block View Source (Ctrl+U / Cmd+U)
+    if ((e.ctrlKey || e.metaKey) && key === "u") {
+      e.preventDefault();
+      alert("View Source is disabled on this page.");
+    }
+
+    // Block Print (Ctrl+P / Cmd+P)
+    if ((e.ctrlKey || e.metaKey) && key === "p") {
+      e.preventDefault();
+      alert("Printing is disabled on this page.");
+    }
+
+    // Block Developer Tools (F12, Ctrl+Shift+I/J/C)
+    if (
+      key === "f12" ||
+      (e.ctrlKey && e.shiftKey && ["i","j","c"].includes(key))
+    ) {
+      e.preventDefault();
+      alert("Developer Tools are disabled on this page.");
+    }
+  });
+</script>
+  <script src="game.js"></script>
+</body>
+</html>
